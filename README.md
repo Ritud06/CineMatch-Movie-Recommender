@@ -65,7 +65,7 @@ TMDB 5000 Movie Dataset from Kaggle
 
 ## 👩‍💻 Built By
 **Ritu**
-Data Science Intern at Skyllx Institute, Bangalore
+Data Science 
 
 ## 📧 Contact
 GitHub: https://github.com/Ritud06
