@@ -151,11 +151,27 @@ hr {{ border-color: {BORDER} !important; opacity: 0.5; }}
 @st.cache_data
 def load_data():
     import os
-    BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
-    PARENT_DIR = os.path.dirname(BASE_DIR)
+    from sklearn.feature_extraction.text import CountVectorizer
+    from sklearn.metrics.pairwise import cosine_similarity as cos_sim
+
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+    # Load movies dict
     movies_dict = pickle.load(open(os.path.join(BASE_DIR, "movies_dict.pkl"), "rb"))
     movies      = pd.DataFrame(movies_dict)
-    similarity  = pickle.load(open(os.path.join(BASE_DIR, "similarity.pkl"), "rb"))
+
+    # Load similarity — generate if not found
+    sim_path = os.path.join(BASE_DIR, "similarity.pkl")
+    if os.path.exists(sim_path):
+        similarity = pickle.load(open(sim_path, "rb"))
+    else:
+        st.info("⏳ First time setup — generating recommendation model... (1-2 minutes)")
+        cv      = CountVectorizer(max_features=5000, stop_words="english")
+        vectors = cv.fit_transform(movies["tags"]).toarray()
+        similarity = cos_sim(vectors)
+        pickle.dump(similarity, open(sim_path, "wb"))
+
+    # Load CSV files
     movies_full = pd.read_csv(os.path.join(BASE_DIR, "tmdb_5000_movies.csv"))
     credits     = pd.read_csv(os.path.join(BASE_DIR, "tmdb_5000_credits.csv"))
     movies_full = movies_full.merge(credits, on="title")
@@ -370,18 +386,29 @@ all_genres = get_all_genres()
 # HERO BANNER
 # ══════════════════════════════════════════════════════════════════════════════
 st.markdown(f"""
-<div style="background:linear-gradient(135deg,#07071a 0%,#1a0a2e 40%,#0a1a3a 70%,#07071a 100%);border-bottom:1px solid {BORDER};padding:56px 48px 44px;margin-bottom:0;text-align:center;position:relative;overflow:hidden;">
-<div style="position:absolute;top:-60px;left:20%;width:300px;height:300px;background:radial-gradient(circle,rgba(233,69,96,0.18),transparent 70%);border-radius:50%;pointer-events:none;"></div>
-<div style="position:absolute;top:-40px;right:20%;width:280px;height:280px;background:radial-gradient(circle,rgba(123,97,255,0.18),transparent 70%);border-radius:50%;pointer-events:none;"></div>
-<div style="display:inline-block;background:rgba(233,69,96,0.12);border:1px solid rgba(233,69,96,0.35);color:{ACCENT};font-size:11px;font-weight:700;letter-spacing:4px;text-transform:uppercase;padding:6px 20px;border-radius:30px;margin-bottom:20px;">✦ AI-Powered Movie Discovery ✦</div>
-<div style="font-size:72px;font-weight:900;letter-spacing:-3px;line-height:1;background:linear-gradient(90deg,{ACCENT} 0%,{ACCENT2} 50%,{ACCENT3} 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:16px;">🎬 CineMatch</div>
-<div style="color:{SUBTEXT};font-size:17px;font-weight:400;letter-spacing:0.5px;margin-bottom:28px;max-width:520px;margin-left:auto;margin-right:auto;line-height:1.6;">Tell us one movie you love.<br>We'll find five more you'll obsess over.</div>
-<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-<span style="background:rgba(233,69,96,0.12);color:{ACCENT};border:1px solid rgba(233,69,96,0.3);padding:7px 18px;border-radius:30px;font-size:12px;font-weight:700;">🎯 ML Powered</span>
-<span style="background:rgba(123,97,255,0.12);color:{ACCENT2};border:1px solid rgba(123,97,255,0.3);padding:7px 18px;border-radius:30px;font-size:12px;font-weight:700;">⚡ Instant Results</span>
-<span style="background:rgba(0,212,170,0.12);color:{ACCENT3};border:1px solid rgba(0,212,170,0.3);padding:7px 18px;border-radius:30px;font-size:12px;font-weight:700;">📊 5,000+ Movies</span>
-<span style="background:rgba(255,200,0,0.10);color:#f5c518;border:1px solid rgba(255,200,0,0.25);padding:7px 18px;border-radius:30px;font-size:12px;font-weight:700;">⭐ TMDB Dataset</span>
-</div>
+<div style="background:linear-gradient(135deg,#07071a,#1a0a2e,#07071a);
+            border-bottom:1px solid {BORDER}; padding:36px 48px 28px;
+            margin-bottom:0;">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+            <div style="font-size:42px;font-weight:900;letter-spacing:-2px;
+                        background:linear-gradient(90deg,{ACCENT},{ACCENT2},{ACCENT3});
+                        -webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+                ✦ CineMatch
+            </div>
+            <div style="color:{SUBTEXT};font-size:15px;margin-top:6px;letter-spacing:0.5px;">
+                AI-powered movie discovery · 5,000+ films
+            </div>
+            <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+                <span style="background:rgba(233,69,96,0.15);color:{ACCENT};border:1px solid rgba(233,69,96,0.3);
+                             padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;">🎯 ML Powered</span>
+                <span style="background:rgba(123,97,255,0.15);color:{ACCENT2};border:1px solid rgba(123,97,255,0.3);
+                             padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;">⚡ Instant Results</span>
+                <span style="background:rgba(0,212,170,0.15);color:{ACCENT3};border:1px solid rgba(0,212,170,0.3);
+                             padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;">📊 5,000+ Movies</span>
+            </div>
+        </div>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -460,7 +487,6 @@ with tab1:
                 """, unsafe_allow_html=True)
                 if st.button("ℹ️ More Info", key=f"btn_{i}", use_container_width=True):
                     st.session_state.detail_title = names[i]
-                    st.rerun()
 
         if st.session_state.detail_title:
             show_details(st.session_state.detail_title)
